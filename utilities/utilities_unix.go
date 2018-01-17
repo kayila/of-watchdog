@@ -1,15 +1,17 @@
+// +build !windows
+
 package utilities
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"syscall"
-	"encoding/json"
 )
 
-type HTTPControl struct{
-	Status int `json:status`
-	Headers map[string]string `json:headers`
+func pipePath() string {
+	return filepath.Join(os.TempDir(), pipeName())
 }
 
 func createPipe(path string) {
@@ -31,7 +33,7 @@ func ReadFromPipe(path string, c chan<- HTTPControl) {
 		if err == nil {
 			control := HTTPControl{}
 			err = json.Unmarshal(s, &control)
-			if err == nil{
+			if err == nil {
 				c <- control
 			}
 		}

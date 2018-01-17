@@ -4,12 +4,22 @@ import (
 	"net/http"
 )
 
+// shimWriter is a struct implementing the http.ResponseWriter interface  This
+// is designed to sit in between a 'nested' http.ResponseWriter and any calls
+// to it, intercepting the calls and checking for an responsecode/header
+// control information being passed through a side pipe. This is done so that
+// programs can connect their stdout directly up to this writer, while still
+// being able to send custom HTTP response codes and headers.
+//
+// This cannot be created directly, please use NewShim.
 type shimWriter struct {
-	Nested http.ResponseWriter
+	Nested      http.ResponseWriter
 	controlChan chan HTTPControl
-	dirty bool
+	dirty       bool
 }
 
+// Creates and returns a new shimWriter object containing the passed
+// http.ResponseWriter and connecting to the control pipe given.
 func NewShim(nest http.ResponseWriter, control string) http.ResponseWriter {
 	ch := make(chan HTTPControl)
 	go ReadFromPipe(control, ch)
@@ -41,11 +51,10 @@ func (s shimWriter) Write(bytes []byte) (int, error) {
 				s.WriteHeader(200)
 			}
 		default:
-			// If nothing was sent yet, explicitely send a 200 header
+			// If nothing was sent yet, explicitly send a 200 header
 			s.WriteHeader(200)
 		}
 		s.dirty = true
 	}
-
 	return s.Nested.Write(bytes)
 }
